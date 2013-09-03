@@ -89,6 +89,11 @@ module KnifeSafeUpload
       diff(a, b).to_s(ui.color? ? :color : :text)
     end
 
+    def fatal_error(msg)
+      ui.fatal(msg)
+      exit(1)
+    end
+
     def locate_config_value(key)
       key = key.to_sym
       value = config[key] || Chef::Config[:knife][key]
@@ -231,6 +236,8 @@ module KnifeSafeUpload
     end
 
     def set_data_bag_items(bag_name)
+      ensure_data_bag_dir_exists(bag_name)
+
       data_bag = ridley.data_bag.find(bag_name)
 
       processed_items = Set.new()
@@ -290,10 +297,18 @@ module KnifeSafeUpload
       File::join(get_cookbooks_path, 'data_bags', bag_name)
     end
 
+    def ensure_data_bag_dir_exists(bag_name)
+      data_bag_dir = get_data_bag_dir(bag_name)
+      unless File.directory?(data_bag_dir)
+        fatal_error("#{data_bag_dir} does not exist or is not a directory")
+      end
+    end
+
     def load_data_bag_item_file(bag_name, item_id, mode)
       raise unless [:can_skip, :must_exist].include?(mode)
 
-      item_file_path = File::join(get_data_bag_dir(bag_name), item_id + '.json')
+      data_bag_dir = get_data_bag_dir(bag_name)
+      item_file_path = File::join(data_bag_dir, item_id + '.json')
       if File.file?(item_file_path)
         contents = open(item_file_path) {|f| JSON.load(f) }
         unless contents['id'] == item_id
@@ -332,6 +347,9 @@ module KnifeSafeUpload
     end
 
     def diff_data_bag_item_files(bag_name1, bag_name2)
+      ensure_data_bag_dir_exists(bag_name1)
+      ensure_data_bag_dir_exists(bag_name2)
+
       items_to_compare = {}
       processed_items = Set.new()
       list_data_bag_item_ids(bag_name1).each do |item_id|
@@ -352,6 +370,11 @@ module KnifeSafeUpload
         end
       end
 
+      if items_to_compare.empty?
+        ui.error("Did not find any data bag items to compare between #{bag_name1} and #{bag_name2}")
+        return
+      end
+
       # Find at least one data bag item on the Chef server. This is necessary to be able to
       # decrypt data bags for comparison.
       data_bag1 = ridley.data_bag.find(bag_name1)
@@ -361,9 +384,8 @@ module KnifeSafeUpload
         break if item
       end
       unless item
-        log.fatal("Could not find any of the following items in the data bag #{bag_name1}: " +
-                  items_to_compare.keys.sort.join(', '))
-        raise
+        fatal_error("Could not find any of the following items in the data bag #{bag_name1}: " +
+                    items_to_compare.keys.sort.join(', '))
       end
 
       items_to_compare.sort.each do |item_id, attributes_pair|
@@ -377,14 +399,13 @@ module KnifeSafeUpload
       if name_args.size < 1 || name_args.size > 2
         ui.fatal("One or two arguments (data bag names) expected")
         show_usage
-        exit 1
+        exit(1)
       end
 
       report_errors do
         if name_args.size == 1
           @dry_run = true
-
-          report_errors { set_data_bag_items(name_args[0]) }
+          report_errors { set_data_bag_items(name_args.first) }
         else
           diff_data_bag_item_files(name_args[0], name_args[1])
         end
@@ -396,15 +417,27 @@ module KnifeSafeUpload
     banner 'knife safe upload data bag BAG'
 
     deps do
+      require 'ridley'
+      require 'diffy'
     end
 
     def run
+      unless name_args.size == 1
+        ui.fatal("Exactly one argument expected")
+        show_usage
+        exit 1
+      end
+
+      report_errors do
+        report_errors { set_data_bag_items(name_args.first) }
+      end
     end
   end
 
   class SafeDiffRun_lists < BaseCommand
     banner 'knife safe diff run_lists'
     def run
+
     end
   end
 

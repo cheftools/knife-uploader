@@ -251,10 +251,11 @@ module KnifeSafeUpload
         end
         old_attributes = item.attributes.clone
 
-        if diff_data_bag_item(item, item_id, old_attributes, new_attributes, verb, 'old', 'new')
+        if diff_data_bag_item(item, item_id, old_attributes, new_attributes, verb,
+                              'Chef server version', 'local')
           updated_items << item_id
           unless @dry_run
-            item.from_hash(new_attributes)
+            override_attributes(item, new_attributes)
             time("Saved data bag item #{item_id} to server", :info) { item.save }
           end
         end

@@ -72,13 +72,34 @@ module KnifeSafeUpload
     end
   end
 
+  module BaseCommandMixin
+    def self.included(includer)
+      includer.class_eval do
+        deps do
+          require 'ridley'
+          require 'diffy'
+        end
+
+        option :pattern,
+          :short => '-p PATTERN',
+          :long => '--pattern PATTERN',
+          :description => 'A regular expression pattern to restrict the set of objects to ' +
+                          'manipulate',
+          :proc => Proc.new { |value| Chef::Config[:knife][:pattern] = value }
+      end
+    end
+  end
+
   class BaseCommand < Chef::Knife
 
     def initialize(args)
-      @log = Logger.new(STDERR)
-      @log.level = Logger::INFO
-
       super
+      @pattern = locate_config_value(:pattern)
+      if @pattern
+        @pattern = Regexp.new(@pattern)
+      else
+        @pattern = //
+      end
     end
 
     def diff(a, b)
@@ -94,17 +115,18 @@ module KnifeSafeUpload
       exit(1)
     end
 
-    def locate_config_value(key)
+    def locate_config_value(key, kind = :optional)
+      raise unless [:required, :optional].include?(kind)
       key = key.to_sym
       value = config[key] || Chef::Config[:knife][key]
-      unless value
-        ui.fatal("#{key} not specified")
+      if kind == :required && value.nil?
+        fatal_error("#{key} not specified")
       end
       value
     end
 
     def get_knife_config_path
-      locate_config_value(:config_file)
+      locate_config_value(:config_file, :required)
     end
 
     def parsed_knife_config
@@ -134,8 +156,6 @@ module KnifeSafeUpload
 
     def ridley
       unless @ridley
-        require 'ridley'
-
         knife_conf_path = get_knife_config_path
 
         # Check file existence (Ridley will throw a confusing error).
@@ -179,7 +199,9 @@ module KnifeSafeUpload
   class DataBagCommand < BaseCommand
 
     def list_data_bag_item_files(bag_name)
-      Dir[File.join(get_data_bag_dir(bag_name), '*.json')]
+      Dir[File.join(get_data_bag_dir(bag_name), '*.json')].select do |file_path|
+        data_bag_item_id_from_path(file_path) =~ @pattern
+      end
     end
 
     def list_data_bag_item_ids(bag_name)
@@ -241,12 +263,17 @@ module KnifeSafeUpload
       data_bag = ridley.data_bag.find(bag_name)
 
       processed_items = Set.new()
+      ignored_items = Set.new()
       updated_items = Set.new()
 
       verb = @dry_run ? 'Would update' : 'Updating'
 
       data_bag.item.all.sort_by {|item| item.chef_id }.each do |item|
         item_id = item.chef_id
+        unless item_id =~ @pattern
+          ignored_items << item_id
+          next
+        end
 
         processed_items << item_id
 
@@ -271,7 +298,7 @@ module KnifeSafeUpload
       # Load remaining data bag files.
       list_data_bag_item_files(bag_name).each do |item_path|
         item_id = data_bag_item_id_from_path(item_path)
-        next if processed_items.include?(item_id)
+        next if processed_items.include?(item_id) || ignored_items.include?(item_id)
 
         processed_items << item_id
 
@@ -339,12 +366,10 @@ module KnifeSafeUpload
   end
 
   class SafeDiffDataBag < DataBagCommand
-    banner 'knife safe diff data bag BAG [BAG2]'
 
-    deps do
-      require 'ridley'
-      require 'diffy'
-    end
+    include BaseCommandMixin
+
+    banner 'knife safe diff data bag BAG [BAG2]'
 
     def diff_data_bag_item_files(bag_name1, bag_name2)
       ensure_data_bag_dir_exists(bag_name1)
@@ -414,12 +439,9 @@ module KnifeSafeUpload
   end
 
   class SafeUploadDataBag < DataBagCommand
-    banner 'knife safe upload data bag BAG'
+    include BaseCommandMixin
 
-    deps do
-      require 'ridley'
-      require 'diffy'
-    end
+    banner 'knife safe upload data bag BAG'
 
     def run
       unless name_args.size == 1
@@ -435,6 +457,8 @@ module KnifeSafeUpload
   end
 
   class SafeDiffRun_lists < BaseCommand
+    include BaseCommandMixin
+
     banner 'knife safe diff run_lists'
     def run
 
@@ -442,6 +466,7 @@ module KnifeSafeUpload
   end
 
   class SafeSyncRun_lists < DataBagCommand
+    include BaseCommandMixin
     banner 'knife safe upload run_lists'
     def run
     end

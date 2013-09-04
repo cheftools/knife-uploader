@@ -86,6 +86,11 @@ module KnifeSafeUpload
           :description => 'A regular expression pattern to restrict the set of objects to ' +
                           'manipulate',
           :proc => Proc.new { |value| Chef::Config[:knife][:pattern] = value }
+
+        option :debug,
+          :long => '--debug',
+          :description => 'Turn on debug messages',
+          :proc => Proc.new { |value| Chef::Config[:knife][:debug] = value }
       end
     end
   end
@@ -108,6 +113,12 @@ module KnifeSafeUpload
 
     def diff_color(a, b)
       diff(a, b).to_s(ui.color? ? :color : :text)
+    end
+
+    def debug(msg)
+      if locate_config_value(:debug)
+        ui.info("DEBUG: #{msg}")
+      end
     end
 
     def fatal_error(msg)
@@ -359,7 +370,7 @@ module KnifeSafeUpload
       if log_level == :info
         ui.info(msg)
       else
-        @log.debug(msg)
+        debug(msg)
       end
       result
     end

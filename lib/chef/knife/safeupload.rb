@@ -64,7 +64,12 @@ module KnifeSafeUpload
     class << self
       def decrypted_attributes(data_bag_item)
         begin
-          [data_bag_item.decrypt.clone, true]
+          [
+            Hash[data_bag_item.attributes.map do
+              |key, value| [key, key == "id" ? value : data_bag_item.decrypt_value(value)]
+            end],
+            true  # decryption successful
+          ]
         rescue OpenSSL::Cipher::CipherError, NoMethodError, NotImplementedError, ArgumentError => ex
           [data_bag_item.attributes.clone, false]
         end
@@ -121,17 +126,12 @@ module KnifeSafeUpload
       end
     end
 
-    def fatal_error(msg)
-      ui.fatal(msg)
-      exit(1)
-    end
-
     def locate_config_value(key, kind = :optional)
       raise unless [:required, :optional].include?(kind)
       key = key.to_sym
       value = config[key] || Chef::Config[:knife][key]
       if kind == :required && value.nil?
-        fatal_error("#{key} not specified")
+        raise "#{key} not specified"
       end
       value
     end
@@ -234,7 +234,7 @@ module KnifeSafeUpload
       new_attributes_formatted = Utils.json_with_sorted_keys(new_attributes)
 
       if old_attributes_formatted == new_attributes_formatted
-        ui.info("#{item_id} has no differences (no decryption attempted)")
+        ui.info("#{item_id} has no differences (no decryption attempted)\n\n")
         return false
       end
 
@@ -257,7 +257,8 @@ module KnifeSafeUpload
 
       # Encrypted data could differ but decrypted data could still be the same.
       if old_decrypted_formatted == new_decrypted_formatted
-        ui.info("#{item_id} has differences before decryption but no differences after decryption")
+        ui.info("#{item_id} has differences before decryption " +
+                "but no differences after decryption\n\n")
         return false
       end
 
@@ -315,7 +316,7 @@ module KnifeSafeUpload
 
         new_attributes = load_data_bag_item_file(bag_name, item_id, :must_exist)
         if @dry_run
-          ui.info("Would create data bag item #{item_id} from #{item_path}")
+          ui.info("Would create data bag item #{item_id} from #{item_path}\n\n")
         else
           time("Created data bag item #{item_id} from #{item_path}", :info) do
             data_bag.item.create(new_attributes)
@@ -326,7 +327,7 @@ module KnifeSafeUpload
 
       unless updated_items.empty?
         ui.info("#{@dry_run ? 'Would update' : 'Updated'} data bag items: " +
-                  updated_items.sort.join(', '))
+                  updated_items.sort.join(', ') + "\n\n")
       end
       ui.info("Processed #{processed_items.length} data bag items")
     end
@@ -338,7 +339,7 @@ module KnifeSafeUpload
     def ensure_data_bag_dir_exists(bag_name)
       data_bag_dir = get_data_bag_dir(bag_name)
       unless File.directory?(data_bag_dir)
-        fatal_error("#{data_bag_dir} does not exist or is not a directory")
+        raise "#{data_bag_dir} does not exist or is not a directory"
       end
     end
 
@@ -350,12 +351,11 @@ module KnifeSafeUpload
       if File.file?(item_file_path)
         contents = open(item_file_path) {|f| JSON.load(f) }
         unless contents['id'] == item_id
-          ui.fatal("File #{item_file_path} contains an invalid id (expected #{item_id})")
-          raise
+          raise "File #{item_file_path} contains an invalid id (expected #{item_id})"
         end
         contents
       elsif mode == :can_skip
-        ui.warn("Data bag item file #{item_file_path} does not exist, skipping")
+        ui.warn("Data bag item file #{item_file_path} does not exist, skipping\n\n")
         nil
       else
         raise "File #{item_file_path} does not exist"

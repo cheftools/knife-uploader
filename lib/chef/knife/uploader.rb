@@ -14,6 +14,8 @@
 # limitations under the License.
 
 require 'chef/knife'
+require 'hashie'
+require 'varia_model'
 
 module KnifeUploader
 

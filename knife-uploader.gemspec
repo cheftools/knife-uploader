@@ -14,14 +14,14 @@
 # limitations under the License.
 
 $:.push File.expand_path("../lib", __FILE__)
-require "knife-safeupload/version"
+require "knife-uploader/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = 'knife-safeupload'
+  spec.name          = 'knife-uploader'
   spec.version       = Knife::SafeUpload::VERSION
   spec.authors       = ['Mikhail Bautin']
-  spec.email         = ['mbautin@clearstorydata.com']
-  spec.description   = 'Knife plugin for safe upload of data bags and run lists'
+  spec.email         = ['mbautin@gmail.com']
+  spec.description   = 'Knife plugin for better uploading of data bags, run lists, etc.'
   spec.summary       = spec.description
   spec.homepage      = ''
   spec.license       = 'Apache'

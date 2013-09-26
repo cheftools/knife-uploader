@@ -15,7 +15,7 @@
 
 require 'chef/knife'
 
-module KnifeSafeUpload
+module KnifeUploader
 
   class KnifeConfigParser
     attr_reader :knife
@@ -376,11 +376,11 @@ module KnifeSafeUpload
     end
   end
 
-  class SafeDiffDataBag < DataBagCommand
+  class UploaderDiffDataBag < DataBagCommand
 
     include BaseCommandMixin
 
-    banner 'knife safe diff data bag BAG [BAG2]'
+    banner 'knife uploader diff data bag BAG [BAG2]'
 
     def diff_data_bag_item_files(bag_name1, bag_name2)
       ensure_data_bag_dir_exists(bag_name1)
@@ -449,10 +449,10 @@ module KnifeSafeUpload
     end
   end
 
-  class SafeUploadDataBag < DataBagCommand
+  class UploaderUploadDataBag < DataBagCommand
     include BaseCommandMixin
 
-    banner 'knife safe upload data bag BAG'
+    banner 'knife uploader upload data bag BAG'
 
     def run
       unless name_args.size == 1
@@ -467,18 +467,18 @@ module KnifeSafeUpload
     end
   end
 
-  class SafeDiffRun_lists < BaseCommand
+  class UploaderDiffRun_lists < BaseCommand
     include BaseCommandMixin
 
-    banner 'knife safe diff run_lists'
+    banner 'knife uploader diff run_lists'
     def run
 
     end
   end
 
-  class SafeSyncRun_lists < DataBagCommand
+  class UploaderUploadRun_lists < DataBagCommand
     include BaseCommandMixin
-    banner 'knife safe upload run_lists'
+    banner 'knife uploader upload run_lists'
     def run
     end
   end

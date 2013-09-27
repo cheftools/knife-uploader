@@ -378,11 +378,11 @@ module KnifeUploader
     end
   end
 
-  class UploaderDiffDataBag < DataBagCommand
+  class UploaderDataBagDiff < DataBagCommand
 
     include BaseCommandMixin
 
-    banner 'knife uploader diff data bag BAG [BAG2]'
+    banner 'knife uploader data bag diff BAG [BAG2]'
 
     def diff_data_bag_item_files(bag_name1, bag_name2)
       ensure_data_bag_dir_exists(bag_name1)
@@ -451,10 +451,10 @@ module KnifeUploader
     end
   end
 
-  class UploaderUploadDataBag < DataBagCommand
+  class UploaderDataBagUpload < DataBagCommand
     include BaseCommandMixin
 
-    banner 'knife uploader upload data bag BAG'
+    banner 'knife uploader data bag upload BAG'
 
     def run
       unless name_args.size == 1
@@ -469,18 +469,18 @@ module KnifeUploader
     end
   end
 
-  class UploaderDiffRun_lists < BaseCommand
+  class UploaderRun_listsDiff < BaseCommand
     include BaseCommandMixin
 
-    banner 'knife uploader diff run_lists'
+    banner 'knife uploader run_lists diff'
     def run
 
     end
   end
 
-  class UploaderUploadRun_lists < DataBagCommand
+  class UploaderRun_listsUpload < DataBagCommand
     include BaseCommandMixin
-    banner 'knife uploader upload run_lists'
+    banner 'knife uploader run_lists upload'
     def run
     end
   end

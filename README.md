@@ -7,9 +7,17 @@ invoking the subcommand with a `--help` flag
 
 #### `knife uploader data bag diff DATA_BAG_NAME`
 
+Shows the difference of between the version of the given data bag in the local Chef repository
+and the version currently present on the Chef server.
+
 #### `knife uploader data bag diff DATA_BAG_NAME1 DATA_BAG_NAME2`
 
+Shows the difference between two data bags in the local Chef repository.
+
 #### `knife uploader data bag upload DATA_BAG_NAME`
+
+Uploads the given data bag to the Chef server, showing the changes that are being applied. Only
+data bag items that have differences are uploaded.
 
 ## License and Authors
 

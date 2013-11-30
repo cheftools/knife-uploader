@@ -13,54 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-require 'chef/knife'
-require 'hashie'
-require 'varia_model'
+require 'chef/knife/uploader_base'
 
 module KnifeUploader
-
-  class KnifeConfigParser
-    attr_reader :knife
-
-    def initialize(knife_conf_path)
-      @knife = {}
-      instance_eval(IO.read(knife_conf_path))
-    end
-
-    def cookbook_path(path_list)
-      @cookbook_path_list = path_list
-    end
-
-    def get_cookbook_path_list
-      @cookbook_path_list
-    end
-
-    def method_missing(meth, *args, &block)
-      # skip
-    end
-  end
-
-  module Utils
-    class << self
-      def sort_hash_keys(h)
-        Hash[*h.sort.flatten(1)]
-      end
-
-      def recursive_sort_hash_keys(obj)
-        if [Hash, Hashie::Mash, VariaModel::Attributes].include?(obj.class)
-          Hash[*obj.sort.map {|k, v| [k, recursive_sort_hash_keys(v)] }.flatten(1)]
-        elsif obj.instance_of?(Array)
-          obj.map {|element| recursive_sort_hash_keys(element) }
-        else
-          obj
-        end
-      end
-
-      def json_with_sorted_keys(h)
-        JSON.pretty_generate(recursive_sort_hash_keys(h)) + "\n"
-      end
-    end
-  end
 
   module DataBagUtils
     class << self
@@ -79,137 +34,7 @@ module KnifeUploader
     end
   end
 
-  module BaseCommandMixin
-    def self.included(includer)
-      includer.class_eval do
-        deps do
-          require 'ridley'
-          require 'diffy'
-        end
-
-        option :pattern,
-          :short => '-p PATTERN',
-          :long => '--pattern PATTERN',
-          :description => 'A regular expression pattern to restrict the set of objects to ' +
-                          'manipulate',
-          :proc => Proc.new { |value| Chef::Config[:knife][:pattern] = value }
-
-        option :debug,
-          :long => '--debug',
-          :description => 'Turn on debug messages',
-          :proc => Proc.new { |value| Chef::Config[:knife][:debug] = value }
-      end
-    end
-  end
-
-  class BaseCommand < Chef::Knife
-
-    def initialize(args)
-      super
-      @pattern = locate_config_value(:pattern)
-      if @pattern
-        @pattern = Regexp.new(@pattern)
-      else
-        @pattern = //
-      end
-    end
-
-    def diff(a, b)
-      ::Diffy::Diff.new(a, b, :context => 2)
-    end
-
-    def diff_color(a, b)
-      diff(a, b).to_s(ui.color? ? :color : :text)
-    end
-
-    def debug(msg)
-      if locate_config_value(:debug)
-        ui.info("DEBUG: #{msg}")
-      end
-    end
-
-    def locate_config_value(key, kind = :optional)
-      raise unless [:required, :optional].include?(kind)
-      key = key.to_sym
-      value = config[key] || Chef::Config[:knife][key]
-      if kind == :required && value.nil?
-        raise "#{key} not specified"
-      end
-      value
-    end
-
-    def get_knife_config_path
-      locate_config_value(:config_file, :required)
-    end
-
-    def parsed_knife_config
-      unless @parsed_knife_config
-        @parsed_knife_config = KnifeConfigParser.new(get_knife_config_path)
-      end
-
-      @parsed_knife_config
-    end
-
-    def get_cookbooks_path
-      unless @cookbooks_path
-        path_list = parsed_knife_config.get_cookbook_path_list
-        path_list.each do |path|
-          if ['.git', 'environments', 'data_bags'].map do |subdir_name|
-            File.directory?(File.join(path, subdir_name))
-          end.all?
-            @cookbooks_path = path
-          end
-        end
-
-        raise "No cookbooks repository checkout path found in #{path_list}" unless @cookbooks_path
-      end
-
-      @cookbooks_path
-    end
-
-    def ridley
-      unless @ridley
-        knife_conf_path = get_knife_config_path
-
-        # Check file existence (Ridley will throw a confusing error).
-        raise "File #{knife_conf_path} does not exist" unless File.file?(knife_conf_path)
-
-        @ridley = Ridley.from_chef_config(knife_conf_path, :ssl => { :verify => false })
-        data_bag_secret_file_path = @ridley.options[:encrypted_data_bag_secret]
-        unless data_bag_secret_file_path
-          raise "No encrypted data bag secret location specified in #{knife_conf_path}"
-        end
-
-        unless File.file?(data_bag_secret_file_path)
-          raise "File #{data_bag_secret_file_path} does not exist"
-        end
-
-        # The encrypted data bag secret has to be the value, even though the readme in Ridley 1.5.2
-        # says it can also be a file name, so we have to re-create the Ridley object.
-        @ridley = Ridley.new(
-          server_url: @ridley.server_url,
-          client_name: @ridley.client_name,
-          client_key: @ridley.client_key,
-          encrypted_data_bag_secret: IO.read(data_bag_secret_file_path),
-          ssl: { verify: false }
-        )
-      end
-
-      @ridley
-    end
-
-    def report_errors(&block)
-      begin
-        yield
-      rescue => exception
-        ui.fatal("#{exception}: #{exception.backtrace.join("\n")}")
-        raise exception
-      end
-    end
-
-  end
-
-  class DataBagCommand < BaseCommand
+  class UploaderDataBagCommand < BaseCommand
 
     def list_data_bag_item_files(bag_name)
       Dir[File.join(get_data_bag_dir(bag_name), '*.json')].select do |file_path|
@@ -275,6 +100,16 @@ module KnifeUploader
       ensure_data_bag_dir_exists(bag_name)
 
       data_bag = ridley.data_bag.find(bag_name)
+      if data_bag.nil?
+        if @dry_run
+          ui.warn("Data bag #{bag_name} does not exist on the Chef server, skipping")
+          return
+        else
+          ui.info("Data bag #{bag_name} does not exist on the Chef server, creating")
+          ridley.data_bag.create(:name => bag_name)
+          data_bag = ridley.data_bag.find(bag_name)
+        end
+      end
 
       processed_items = Set.new()
       ignored_items = Set.new()
@@ -335,7 +170,10 @@ module KnifeUploader
     end
 
     def get_data_bag_dir(bag_name)
-      File::join(get_cookbooks_path, 'data_bags', bag_name)
+      File.join(
+        parsed_knife_config.get_data_bag_path || File::join(get_chef_repo_path, 'data_bags'),
+        bag_name
+      )
     end
 
     def ensure_data_bag_dir_exists(bag_name)
@@ -378,7 +216,7 @@ module KnifeUploader
     end
   end
 
-  class UploaderDataBagDiff < DataBagCommand
+  class UploaderDataBagDiff < UploaderDataBagCommand
 
     include BaseCommandMixin
 
@@ -433,7 +271,7 @@ module KnifeUploader
       end
     end
 
-    def run
+    def run_internal
       if name_args.size < 1 || name_args.size > 2
         ui.fatal("One or two arguments (data bag names) expected")
         show_usage
@@ -451,12 +289,12 @@ module KnifeUploader
     end
   end
 
-  class UploaderDataBagUpload < DataBagCommand
+  class UploaderDataBagUpload < UploaderDataBagCommand
     include BaseCommandMixin
 
     banner 'knife uploader data bag upload BAG'
 
-    def run
+    def run_internal
       unless name_args.size == 1
         ui.fatal("Exactly one argument expected")
         show_usage
@@ -466,22 +304,6 @@ module KnifeUploader
       report_errors do
         report_errors { set_data_bag_items(name_args.first) }
       end
-    end
-  end
-
-  class UploaderRun_listsDiff < BaseCommand
-    include BaseCommandMixin
-
-    banner 'knife uploader run_lists diff'
-    def run
-
-    end
-  end
-
-  class UploaderRun_listsUpload < DataBagCommand
-    include BaseCommandMixin
-    banner 'knife uploader run_lists upload'
-    def run
     end
   end
 

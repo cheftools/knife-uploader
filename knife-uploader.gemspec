@@ -23,14 +23,15 @@ Gem::Specification.new do |spec|
   spec.email         = ['mbautin@gmail.com']
   spec.description   = 'Knife plugin for better uploading of data bags, run lists, etc.'
   spec.summary       = spec.description
-  spec.homepage      = ''
+  spec.homepage      = 'https://github.com/mbautin/knife-uploader'
   spec.license       = 'Apache'
   spec.files         = Dir.glob("{bin,lib}/**/*") + %w(Gemfile)
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
-  spec.add_dependency 'chef', '~> 11.4.2'
+  spec.add_dependency 'chef', '~> 11.4'
   spec.add_dependency 'diffy', '~> 3.0'
   spec.add_dependency 'hashie', '~> 2.0'
   spec.add_dependency 'ridley', '~> 1.5.2'
+  spec.add_dependency 'celluloid', '~> 0.14.1', '< 0.15.0'
 end

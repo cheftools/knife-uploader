@@ -28,19 +28,20 @@ module KnifeUploader
     def set_run_lists
       run_lists_file_path = File::join(get_chef_repo_path, 'run_lists', "#{@env_name}.json")
       target_run_lists = File.open(run_lists_file_path) {|f| JSON.load(f) }
+
       filtered_chef_nodes.each do |node|
         debug("Comparing run lists for node #{node.name}")
         old_run_list = node.run_list
-        new_run_list = target_run_lists[node.name]
-        unless new_run_list
-          # No exact match, let's try patterns.
-          target_run_lists.each do |pattern, run_list|
-            if node.name =~ /\A#{pattern}\Z/
-              new_run_list = run_list
-              break
-            end
+        new_run_list = []
+
+        # Concatenate all matching patterns. This allows to specify some common parts of run lists
+        # only once.
+        target_run_lists.each do |pattern, run_list|
+          if node.name =~ /\A#{pattern}\Z/
+            new_run_list += run_list
           end
         end
+        debug("New run list for node #{node.name}: #{new_run_list}")
 
         next if old_run_list == new_run_list
 

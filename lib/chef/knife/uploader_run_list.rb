@@ -45,6 +45,8 @@ module KnifeUploader
         end
         debug("New run list for node #{node.name}: #{new_run_list}")
 
+        next if old_run_list == new_run_list
+
         unless new_run_list
           ui.warn("No new run list defined for node #{node.name}, skipping")
           next

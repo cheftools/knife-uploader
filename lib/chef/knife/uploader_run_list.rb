@@ -21,6 +21,7 @@ module KnifeUploader
 
     def filtered_chef_nodes
       ridley.node.all.sort_by {|node| node.name }.to_enum
+                     .lazy_select {|node| node.name =~ @pattern }
                      .lazy_map {|node| ridley.node.find(node.name) }
                      .lazy_select {|node| node.chef_environment == @env_name }
     end
@@ -30,6 +31,7 @@ module KnifeUploader
       target_run_lists = File.open(run_lists_file_path) {|f| JSON.load(f) }
 
       filtered_chef_nodes.each do |node|
+
         debug("Comparing run lists for node #{node.name}")
         old_run_list = node.run_list
         new_run_list = []
@@ -42,8 +44,6 @@ module KnifeUploader
           end
         end
         debug("New run list for node #{node.name}: #{new_run_list}")
-
-        next if old_run_list == new_run_list
 
         unless new_run_list
           ui.warn("No new run list defined for node #{node.name}, skipping")

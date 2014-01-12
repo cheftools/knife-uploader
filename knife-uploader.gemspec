@@ -6,7 +6,6 @@
 # You may obtain a copy of the License at
 #
 #      http://www.apache.org/licenses/LICENSE-2.0
-#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,7 +17,7 @@ require "knife-uploader/version"
 
 Gem::Specification.new do |spec|
   spec.name          = 'knife-uploader'
-  spec.version       = Knife::SafeUpload::VERSION
+  spec.version       = Knife::Uploader::VERSION
   spec.authors       = ['Mikhail Bautin']
   spec.email         = ['mbautin@gmail.com']
   spec.description   = 'Knife plugin for better uploading of data bags, run lists, etc.'
@@ -32,6 +31,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'chef', '~> 11.4'
   spec.add_dependency 'diffy', '~> 3.0'
   spec.add_dependency 'hashie', '~> 2.0'
-  spec.add_dependency 'ridley', '~> 1.5.2'
+  spec.add_dependency 'ridley', '~> 1.5.3'
+  spec.add_dependency 'varia_model', '~> 0.2.0'
   spec.add_dependency 'celluloid', '~> 0.14.1', '< 0.15.0'
 end

@@ -33,6 +33,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'hashie', '~> 2.0'
   spec.add_dependency 'ridley', '~> 1.5.3'
   spec.add_dependency 'varia_model', '~> 0.2.0'
-  spec.add_dependency 'celluloid', '~> 0.14.1', '< 0.15.0'
+  spec.add_dependency 'celluloid', '~> 0.14.1'
   spec.add_dependency 'faraday', '~> 0.8.9'
 end

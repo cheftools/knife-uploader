@@ -1,6 +1,6 @@
 module Knife
   module Uploader
-    VERSION = '0.1.4'
+    VERSION = IO.read(File.expand_path("../../../VERSION", __FILE__))
     MAJOR, MINOR, TINY = VERSION.split('.')
   end
 end

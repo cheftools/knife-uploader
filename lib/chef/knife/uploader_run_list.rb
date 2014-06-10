@@ -52,7 +52,7 @@ module KnifeUploader
           next
         end
 
-        ui.info((@dry_run ? 'Would modify' : 'Modifying') +
+        ui.info("\n" + (@dry_run ? 'Would modify' : 'Modifying') +
                 " the run list for node #{node.name}:\n" +
                 diff_color(old_run_list.join("\n") + "\n",
                            new_run_list.join("\n") + "\n"))

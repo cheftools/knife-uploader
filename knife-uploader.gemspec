@@ -20,7 +20,7 @@ Gem::Specification.new do |spec|
   spec.version       = Knife::Uploader::VERSION
   spec.authors       = ['Mikhail Bautin']
   spec.email         = ['mbautin@gmail.com']
-  spec.description   = 'Knife plugin for better uploading of data bags, run lists, etc.'
+  spec.description   = 'Knife plugin for better uploading of data bags and run lists to Chef Server'
   spec.summary       = spec.description
   spec.homepage      = 'https://github.com/mbautin/knife-uploader'
   spec.license       = 'Apache'
@@ -28,6 +28,7 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^bin/}) { |f| File.basename(f) }
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ['lib']
+
   spec.add_dependency 'chef', '~> 11.4'
   spec.add_dependency 'diffy', '~> 3.0'
   spec.add_dependency 'hashie', '~> 2.0'
@@ -35,4 +36,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'varia_model', '~> 0.4'
   spec.add_dependency 'celluloid', '~> 0.14'
   spec.add_dependency 'faraday', '~> 0.9'
+
+  spec.add_development_dependency 'rspec'
 end

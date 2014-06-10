@@ -15,19 +15,19 @@
 
 $:.unshift File.expand_path('../../lib', __FILE__)
 
-require 'chef'
-require 'chef/knife/uploader'
 require 'json'
+require 'chef'
+require 'chef/knife/uploader_base.rb'
 
 describe KnifeUploader::Utils do
   describe '.sort_hash_keys' do
 
     it 'Ruby normally keeps track of hash key order' do
-      {:a => 1, :c => 3, :b => 2}.keys.should == [:a, :c, :b]
+      expect({:a => 1, :c => 3, :b => 2}.keys).to eq([:a, :c, :b])
     end
 
     it 'should return a hash with sorted keys' do
-      KnifeUploader::Utils.sort_hash_keys({:a => 1, :c => 3, :b => 2}).keys.should == [:a, :b, :c]
+      expect(KnifeUploader::Utils.sort_hash_keys({:a => 1, :c => 3, :b => 2}).keys).to eq([:a, :b, :c])
     end
   end
 
@@ -37,15 +37,16 @@ describe KnifeUploader::Utils do
     end
 
     it 'JSON keys should come in the same order as specified' do
-      JSON.generate(@hash).should == '{"c":{"zz":3,"ww":5,"aa":17},"b":5,"asdf":{"d":7,"a":100}}'
+      expect(JSON.generate(@hash)).to eq('{"c":{"zz":3,"ww":5,"aa":17},"b":5,"asdf":{"d":7,"a":100}}')
     end
 
     it 'should sort keys at every level' do
       new_hash = @hash
-      JSON.generate(KnifeUploader::Utils.recursive_sort_hash_keys(new_hash)).should ==
+      expect(JSON.generate(KnifeUploader::Utils.recursive_sort_hash_keys(new_hash))).to eq(
         '{"asdf":{"a":100,"d":7},"b":5,"c":{"aa":17,"ww":5,"zz":3}}'
+      )
       # There should be no side effects on the hash being sorted.
-      new_hash.should == @hash
+      expect(new_hash).to eq(@hash)
     end
   end
 end

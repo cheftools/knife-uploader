@@ -220,6 +220,11 @@ module KnifeUploader
 
     include BaseCommandMixin
 
+    # TODO: can this be moved to a module shared between data bag upload and diff commands?
+    option :secret_file,
+      long: "--secret-file SECRET_FILE",
+      description: 'A file containing the secret key to use to encrypt data bag item values'
+
     banner 'knife uploader data bag diff BAG [BAG2]'
 
     def diff_data_bag_item_files(bag_name1, bag_name2)
@@ -291,6 +296,11 @@ module KnifeUploader
 
   class UploaderDataBagUpload < UploaderDataBagCommand
     include BaseCommandMixin
+
+    # TODO: can this be moved to a module shared between data bag upload and diff commands?
+    option :secret_file,
+      long: "--secret-file SECRET_FILE",
+      description: 'A file containing the secret key to use to encrypt data bag item values'
 
     banner 'knife uploader data bag upload BAG'
 

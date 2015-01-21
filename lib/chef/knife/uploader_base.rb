@@ -195,9 +195,11 @@ module KnifeUploader
         raise "File #{knife_conf_path} does not exist" unless File.file?(knife_conf_path)
 
         @ridley = Ridley.from_chef_config(knife_conf_path, :ssl => { :verify => false })
-        data_bag_secret_file_path = @ridley.options[:encrypted_data_bag_secret]
+        data_bag_secret_file_path =
+          config[:secret_file] || @ridley.options[:encrypted_data_bag_secret]
         unless data_bag_secret_file_path
-          raise "No encrypted data bag secret location specified in #{knife_conf_path}"
+          raise "No encrypted data bag secret location specified on the command line using " \
+                "--secret-file or with encrypted_data_bag_secret in #{knife_conf_path}"
         end
 
         unless File.file?(data_bag_secret_file_path)

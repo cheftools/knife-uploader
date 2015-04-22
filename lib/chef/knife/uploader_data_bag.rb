@@ -82,6 +82,8 @@ module KnifeUploader
       old_decrypted_formatted = Utils.json_with_sorted_keys(old_decrypted)
       new_decrypted_formatted = Utils.json_with_sorted_keys(new_decrypted)
 
+      show_encrypted = locate_config_value(:show_encrypted) || false
+
       # Encrypted data could differ but decrypted data could still be the same.
       if old_decrypted_formatted == new_decrypted_formatted
         ui.info("#{item_id} has differences before decryption " +
@@ -89,10 +91,16 @@ module KnifeUploader
         return false
       end
 
-      ui.info("#{diff_comment_prefix} data bag item #{item_id} " +
-              "(#{old_could_decrypt ? 'decrypted' : 'raw'} #{desc1} vs." +
-              " #{new_could_decrypt ? 'decrypted' : 'raw'} #{desc2}):\n" +
-              diff_color(old_decrypted_formatted, new_decrypted_formatted) + "\n")
+      if !show_encrypted && (old_could_decrypt || new_could_decrypt)
+        ui.info("#{diff_comment_prefix} data bag item #{item_id}. \n" +
+                "\tNot showing the diff since they are encrypted.\n" +
+                "\tUse --show_encrypted to display the diff.\n\n")
+      else
+        ui.info("#{diff_comment_prefix} data bag item #{item_id} " +
+                "(#{old_could_decrypt ? 'decrypted' : 'raw'} #{desc1} vs." +
+                " #{new_could_decrypt ? 'decrypted' : 'raw'} #{desc2}):\n" +
+                diff_color(old_decrypted_formatted, new_decrypted_formatted) + "\n")
+      end
       true
     end
 

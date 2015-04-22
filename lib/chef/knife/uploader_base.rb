@@ -103,16 +103,21 @@ module KnifeUploader
         end
 
         option :pattern,
-          :short => '-p PATTERN',
-          :long => '--pattern PATTERN',
-          :description => 'A regular expression pattern to restrict the set of objects to ' +
+          short: '-p PATTERN',
+          long: '--pattern PATTERN',
+          description: 'A regular expression pattern to restrict the set of objects to ' +
                           'manipulate',
-          :proc => Proc.new { |value| Chef::Config[:knife][:pattern] = value }
+          proc: Proc.new { |value| Chef::Config[:knife][:pattern] = value }
 
         option :debug,
-          :long => '--debug',
-          :description => 'Turn on debug messages',
-          :proc => Proc.new { |value| Chef::Config[:knife][:debug] = value }
+          long: '--debug',
+          description: 'Turn on debug messages',
+          proc: Proc.new { |value| Chef::Config[:knife][:debug] = value }
+
+        option :show_encrypted,
+          long: '--show_encrypted',
+          description: 'Show the decrypted data bag contets when different.',
+          prod: Proc.new { |value| Chef::Config[:knife][:show_encrypted] = value }
       end
     end
   end

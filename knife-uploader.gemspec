@@ -31,7 +31,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'chef', '>= 11.4'
   spec.add_dependency 'diffy', '~> 3.0'
-  spec.add_dependency 'hashie', '~> 2.0'
+  spec.add_dependency 'hashie', '>= 2.0'
   spec.add_dependency 'ridley', '~> 4.0'
   spec.add_dependency 'varia_model', '~> 0.4'
   spec.add_dependency 'celluloid', '~> 0.14'
